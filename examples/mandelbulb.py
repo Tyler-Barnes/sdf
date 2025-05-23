@@ -10,6 +10,7 @@ class _mandelbulb:
         self.iterations = iterations
         self.power = power
         self.bailout = bailout
+        self.position = position
     def spherical(self, zeta):                                                      # cartesian to spherical triplex tranformation 
         r = np.linalg.norm(zeta)                                                    # r = sqrt(x*x+y*y+z*z)
         theta = np.arccos(zeta[2] / r)                                              # θ = acos(z/r) = atan2(sqrt(x*x+y*y), z)
