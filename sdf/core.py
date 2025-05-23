@@ -1,5 +1,5 @@
 from functools import partial
-from multiprocessing.pool import ThreadPool
+from multiprocessing import get_context
 from skimage import measure
 
 import multiprocessing
@@ -128,17 +128,18 @@ def generate(
     points = []
     skipped = empty = nonempty = 0
     bar = progress.Bar(num_batches, enabled=verbose)
-    pool = ThreadPool(workers)
+    ctx = get_context("spawn")
     f = partial(_worker, sdf, step=(dx, dy, dz), sparse=sparse)
-    for result in pool.imap(f, batches):
-        bar.increment(1)
-        if result is None:
-            skipped += 1
-        elif len(result) == 0:
-            empty += 1
-        else:
-            nonempty += 1
-            points.extend(result)
+    with ctx.Pool(workers) as pool:
+        for result in pool.map(f, batches):
+            bar.increment(1)
+            if result is None:
+                skipped += 1
+            elif len(result) == 0:
+                empty += 1
+            else:
+                nonempty += 1
+                points.extend(result)
     bar.done()
 
     if verbose:
@@ -185,6 +186,7 @@ def _debug_triangles(X, Y, Z):
     ]
 
     return [
+    
         v[3], v[5], v[7],
         v[5], v[3], v[1],
         v[0], v[6], v[4],

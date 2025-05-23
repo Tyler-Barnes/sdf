@@ -64,70 +64,78 @@ def image(thing, width=None, height=None, pixels=PIXELS):
     im = _load_image(thing).convert('L')
     return _sdf(width, height, pixels, 0, 0, im)
 
+
 def _sdf(width, height, pixels, px, py, im):
-    tw, th = im.size
+    return __sdf(width, height, pixels, px, py, im)
 
-    # downscale image if necessary
-    factor = (pixels / (tw * th)) ** 0.5
-    if factor < 1:
-        tw, th = int(round(tw * factor)), int(round(th * factor))
-        px, py = int(round(px * factor)), int(round(py * factor))
-        im = im.resize((tw, th))
+class __sdf:
+    def __init__(self, width, height, pixels, px, py, im):
+        self.width = width
+        self.height = height
+        self.pixels = pixels
+        self.px = px
+        self.py = py
+        self.im = im
+        self.tw, self.th = self.im.size
+        # downscale image if necessary
+        factor = (self.pixels / (self.tw * self.th)) ** 0.5
+        if factor < 1:
+            self.tw, self.th = int(round(self.tw * factor)), int(round(self.th * factor))
+            self.px, self.py = int(round(self.px * factor)), int(round(self.py * factor))
+            self.im = self.im.resize((self.tw, self.th))
 
-    # convert to numpy array and apply distance transform
-    im = im.convert('1')
-    a = np.array(im)
-    inside = -nd.distance_transform_edt(a)
-    outside = nd.distance_transform_edt(~a)
-    texture = np.zeros(a.shape)
-    texture[a] = inside[a]
-    texture[~a] = outside[~a]
+        # convert to numself.py array and apply distance transform
+        self.im = self.im.convert('1')
+        a = np.array(self.im)
+        inside = -nd.distance_transform_edt(a)
+        self.outside = nd.distance_transform_edt(~a)
+        self.texture = np.zeros(a.shape)
+        self.texture[a] = inside[a]
+        self.texture[~a] = self.outside[~a]
 
-    # save debug image
-    # a = np.abs(texture)
-    # lo, hi = a.min(), a.max()
-    # a = (a - lo) / (hi - lo) * 255
-    # im = Image.fromarray(a.astype('uint8'))
-    # im.save('debug.png')
+        # save debug self.image
+        # a = np.abs(self.texture)
+        # lo, hi = a.min(), a.max()
+        # a = (a - lo) / (hi - lo) * 255
+        # self.im = Image.fromarray(a.astype('uint8'))
+        # self.im.save('debug.png')
 
-    # compute world bounds
-    pw = tw - px * 2
-    ph = th - py * 2
-    aspect = pw / ph
-    if width is None and height is None:
-        height = 1
-    if width is None:
-        width = height * aspect
-    if height is None:
-        height = width / aspect
-    x0 = -width / 2
-    y0 = -height / 2
-    x1 = width / 2
-    y1 = height / 2
+        # compute world bounds
+        self.pw = self.tw - self.px * 2
+        self.ph = self.th - self.py * 2
+        aspect = self.pw / self.ph
+        if self.width is None and self.height is None:
+            self.height = 1
+        if self.width is None:
+            self.width = self.height * aspect
+        if self.height is None:
+            self.height = self.width / aspect
+        self.x0 = -self.width / 2
+        self.y0 = -self.height / 2
+        self.x1 = self.width / 2
+        self.y1 = self.height / 2
 
-    # scale texture distances
-    scale = width / tw
-    texture *= scale
+        # scale self.texture distances
+        scale = self.width / self.tw
+        self.texture *= scale
 
-    # prepare fallback rectangle
-    # TODO: reduce size based on mesh resolution instead of dividing by 2
-    rectangle = d2.rectangle((width / 2, height / 2))
+        # prepare fallback rectangle
+        # TODO: reduce size based on mesh resolution instead of dividing by 2
+        self.rectangle = d2.rectangle((self.width / 2, self.height / 2))
 
-    def f(p):
+    def __call__(self, p):
         x = p[:,0]
         y = p[:,1]
-        u = (x - x0) / (x1 - x0)
-        v = (y - y0) / (y1 - y0)
+        u = (x - self.x0) / (self.x1 - self.x0)
+        v = (y - self.y0) / (self.y1 - self.y0)
         v = 1 - v
-        i = u * pw + px
-        j = v * ph + py
-        d = _bilinear_interpolate(texture, i, j)
-        q = rectangle(p).reshape(-1)
-        outside = (i < 0) | (i >= tw-1) | (j < 0) | (j >= th-1)
-        d[outside] = q[outside]
+        i = u * self.pw + self.px
+        j = v * self.ph + self.py
+        d = _bilinear_interpolate(self.texture, i, j)
+        q = self.rectangle(p).reshape(-1)
+        self.outside = (i < 0) | (i >= self.tw-1) | (j < 0) | (j >= self.th-1)
+        d[self.outside] = q[self.outside]
         return d
-
-    return f
 
 def _bilinear_interpolate(a, x, y):
     x0 = np.floor(x).astype(int)

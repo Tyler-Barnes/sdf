@@ -18,17 +18,19 @@ example. Note the use of operators for union, intersection, and difference.
 
 ```python
 from sdf import *
-
-f = sphere(1) & box(1.5)
-
-c = cylinder(0.5)
-f -= c.orient(X) | c.orient(Y) | c.orient(Z)
-
-f.save('out.stl')
+if __name__ == "__main__":
+    f = sphere(1) & box(1.5)
+    
+    c = cylinder(0.5)
+    f -= c.orient(X) | c.orient(Y) | c.orient(Z)
+    
+    f.save('out.stl')
 ```
 
 Yes, that's really the entire code! You can 3D print that model or use it
 in a 3D application.
+
+Please note that using `if __name__ == "__main__":` as seen above is required in your sketch file. 
 
 ## More Examples
 
@@ -262,9 +264,14 @@ implemented. Here are some simple examples:
 ```python
 @sdf3
 def sphere(radius=1, center=ORIGIN):
-    def f(p):
-        return np.linalg.norm(p - center, axis=1) - radius
-    return f
+    return _sphere(radius=radius, center=center)
+
+class _sphere: 
+    def __init__(self, radius, center):
+        self.radius = radius
+        self.center = center
+    def __call__(self, p):
+        return _length(p - self.center) - self.radius
 ```
 
 An SDF is simply a function that takes a numpy array of points with shape `(N, 3)`
@@ -276,9 +283,14 @@ add the `save` method, add the operators like `translate`, etc.
 ```python
 @op3
 def translate(other, offset):
-    def f(p):
-        return other(p - offset)
-    return f
+    return _translate(other, offset)
+
+class _translate:
+    def __init__(self, other, offset):
+        self.other = other
+        self.offset = offset
+    def __call__(self, p):   
+        return self.other(p - self.offset)
 ```
 
 An SDF that operates on another SDF (like the above `translate`) should use
