@@ -6,7 +6,8 @@ def write_binary_stl(path, points):
 
     points = np.array(points, dtype='float32').reshape((-1, 3, 3))
     normals = np.cross(points[:,1] - points[:,0], points[:,2] - points[:,0])
-    normals /= np.linalg.norm(normals, axis=1).reshape((-1, 1))
+    lengths = np.linalg.norm(normals, axis=1).reshape((-1, 1))
+    normals = np.divide(normals, lengths, out=np.zeros_like(normals), where=lengths!=0)
 
     dtype = np.dtype([
         ('normal', ('<f', 3)),
